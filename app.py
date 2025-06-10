@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import io
 
-st.set_page_config(page_title="Acurex SMS Formatter", layout="centered")
+st.set_page_config(page_title="SMS-Fix for Accurx", layout="centered")
 
 st.title("SMS-Fix for Accurx")
 st.caption(
