@@ -5,16 +5,17 @@ import io
 st.set_page_config(page_title="Acurex SMS Formatter", layout="centered")
 
 st.title("SMS-Fix for Accurx")
-st.write(
+st.caption(
     """
-    Upload a CSV file containing patient data (columns: Patient Name, NHS Number, Date of Birth, Telephone Number, First Name, Email Address).
-    The app will format the data for Acurex SMS messaging, handling any errors in your data.
+    SMS-Fix will format your csv file for use with Accurx SMS.
     """
 )
 
 uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 
-if uploaded_file is not None:
+if uploaded_file is None:
+    st.image("smsfix.png")
+else:
     try:
         df = pd.read_csv(uploaded_file)
     except Exception:
