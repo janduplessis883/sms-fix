@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="smsfix.png" alt="SMS Fix Logo" width="300"/>
+  <img src="smsfix.png" alt="SMS Fix Logo" width="400"/>
 </p>
 
 # SMS-Fix for Accurx
