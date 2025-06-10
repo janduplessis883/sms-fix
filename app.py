@@ -103,13 +103,22 @@ if uploaded_file is not None:
         st.warning(f"{both_missing_count} row(s) dropped because both mobile number and email address were missing.")
     df = df[~both_missing].reset_index(drop=True)
 
-    # Output the cleaned DataFrame (same columns as input, with corrections)
+    # Keep only the required columns in the cleaned DataFrame
+    output_cols = [
+        "NHS number",
+        "Preferred telephone number",
+        "Date of birth",
+        "First name",
+        "Email address"
+    ]
+    cleaned_df = df[output_cols].copy()
+
     st.subheader("Cleaned Data")
-    st.dataframe(df)
+    st.dataframe(cleaned_df)
 
     # Download button for cleaned CSV
     csv_buffer = io.StringIO()
-    df.to_csv(csv_buffer, index=False)
+    cleaned_df.to_csv(csv_buffer, index=False)
     st.download_button(
         label="Download Cleaned CSV",
         data=csv_buffer.getvalue(),
