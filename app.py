@@ -1,13 +1,15 @@
 import streamlit as st
 import pandas as pd
 import io
+import re
+import numpy as np
 
 st.set_page_config(page_title="SMS-Fix for Accurx", layout="centered")
 
 st.title("SMS-Fix for Accurx")
 st.caption(
     """
-    SMS-Fix will format your csv file for use with Accurx SMS.
+    **SMS-Fix** will format your csv file for use with Accurx SMS.
     """
 )
 
@@ -41,10 +43,10 @@ else:
         st.stop()
 
     # Validate and clean UK mobile numbers
-    import re
+
     def clean_mobile(mobile):
         if pd.isna(mobile):
-            return ""
+            return np.nan
         s = str(mobile).strip()
         # Correct O7/o7 to 07
         if s.startswith("O7") or s.startswith("o7"):
@@ -59,7 +61,7 @@ else:
             return s
         if re.match(r"^\+447\d{9}$", s):
             return s
-        return ""
+        return np.nan
     original_mobiles = df["Preferred telephone number"].copy()
     df["Preferred telephone number"] = df["Preferred telephone number"].apply(clean_mobile)
     # Warn about corrections and blanked numbers
@@ -76,15 +78,18 @@ else:
             ", ".join(str(idx) for idx in df[blanked].index.tolist())
         )
 
-    # Extract valid email from any cell with extra text
-    email_extract_pattern = re.compile(r"([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})")
+    # Extract valid email from any cell with extra text (remove text after first space)
     def extract_email(cell):
-        match = email_extract_pattern.search(str(cell))
-        return match.group(1) if match else ""
+        s = str(cell).strip()
+        if " " in s:
+            return s.split(" ")[0]
+        return s
     df["Email address"] = df["Email address"].apply(extract_email)
+    # Replace empty strings or 'nan' (string) with np.nan
+    df["Email address"] = df["Email address"].replace(["", "nan", "NaN", "None"], np.nan)
 
     # After extraction, warn if any are still blank (could not extract)
-    still_blank_mask = df["Email address"].astype(str).str.strip() == ""
+    still_blank_mask = df["Email address"].isna()
     if still_blank_mask.any():
         blanked_emails = df.loc[still_blank_mask].index.tolist()
         st.warning(
@@ -98,8 +103,10 @@ else:
         st.warning(f"{dropped_count} row(s) dropped due to invalid NHS number (must be exactly 10 digits).")
     df = df[nhs_valid].reset_index(drop=True)
 
-    # Drop rows where both mobile number and email are missing
-    both_missing = (df["Preferred telephone number"].astype(str).str.strip() == "") & (df["Email address"].astype(str).str.strip() == "")
+    # Drop rows where both mobile number and email are missing (treat NaN and empty as missing)
+    mobile_missing = df["Preferred telephone number"].isna() | (df["Preferred telephone number"].astype(str).str.strip() == "")
+    email_missing = df["Email address"].isna() | (df["Email address"].astype(str).str.strip() == "")
+    both_missing = mobile_missing & email_missing
     both_missing_count = both_missing.sum()
     if both_missing_count > 0:
         st.warning(f"{both_missing_count} row(s) dropped because both mobile number and email address were missing.")
@@ -117,7 +124,7 @@ else:
 
     st.subheader("Cleaned Data")
     st.dataframe(cleaned_df)
-    st.info(f"Cleaned DataFrame row count: {cleaned_df.shape[0]}")
+    st.info(f"Cleaned DataFrame row count: **{cleaned_df.shape[0]}**")
 
     # Download button for cleaned CSV
     csv_buffer = io.StringIO()
