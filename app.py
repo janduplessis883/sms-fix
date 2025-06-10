@@ -4,11 +4,11 @@ import io
 
 st.set_page_config(page_title="Acurex SMS Formatter", layout="centered")
 
-st.title("Acurex SMS CSV Formatter")
+st.title("SMS-Fix for Accurx")
 st.write(
     """
     Upload a CSV file containing patient data (columns: Patient Name, NHS Number, Date of Birth, Telephone Number, First Name, Email Address).
-    The app will format the data for Acurex SMS messaging.
+    The app will format the data for Acurex SMS messaging, handling any errors in your data.
     """
 )
 
@@ -24,6 +24,7 @@ if uploaded_file is not None:
     # Display the uploaded data
     st.subheader("Uploaded Data")
     st.dataframe(df)
+    st.info(f"Uploaded DataFrame row count: {df.shape[0]}")
 
     # Check for required columns
     required_cols = [
@@ -115,6 +116,7 @@ if uploaded_file is not None:
 
     st.subheader("Cleaned Data")
     st.dataframe(cleaned_df)
+    st.info(f"Cleaned DataFrame row count: {cleaned_df.shape[0]}")
 
     # Download button for cleaned CSV
     csv_buffer = io.StringIO()
