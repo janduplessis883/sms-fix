@@ -3,13 +3,14 @@ import pandas as pd
 import io
 import re
 import numpy as np
+import time
 
 st.set_page_config(page_title="SMS-Fix for Accurx", layout="centered")
 
 st.title("SMS-Fix for Accurx")
 st.caption(
     """
-    :material/sms: **SMS-Fix** will format your csv file for use with Accurx SMS.
+    :material/sms: **SMS-Fix** will format your csv file for use with Accurx SMS. Uplodaded CSV files must contain the following columns: NHS Number, Preferred Telephone Number, Date of Birth, First Name, and Email Address.
     """
 )
 
@@ -26,7 +27,7 @@ else:
 
     # Display the uploaded data
     st.subheader("Uploaded Data")
-    st.dataframe(df)
+    st.dataframe(df, height=200)
     st.info(f"Uploaded DataFrame row count: **{df.shape[0]}**")
 
     # Check for required columns
@@ -39,7 +40,7 @@ else:
     ]
     missing_cols = [col for col in required_cols if col not in df.columns]
     if missing_cols:
-        st.error(f":material/bolt: Missing columns: {', '.join(missing_cols)}")
+        st.toast(f"Missing columns: {', '.join(missing_cols)}", icon=":material/build_circle:")
         st.stop()
 
     # Validate and clean UK mobile numbers
@@ -68,14 +69,16 @@ else:
     corrected = (original_mobiles != df["Preferred telephone number"]) & (df["Preferred telephone number"] != "")
     blanked = (df["Preferred telephone number"] == "")
     if corrected.any():
-        st.warning(
-            ":material/bolt: The following row(s) had their mobile number corrected to a valid UK format: " +
-            ", ".join(str(idx) for idx in df[corrected].index.tolist())
+        time.sleep(0.3)  # Small delay to ensure toast appears after processing
+        st.toast(
+            "The following row(s) had their mobile number corrected to a valid UK format: " +
+            ", ".join(str(idx) for idx in df[corrected].index.tolist()), icon=":material/build_circle:"
         )
     if blanked.any():
-        st.warning(
-            ":material/bolt: The following row(s) had invalid mobile numbers and have been blanked: " +
-            ", ".join(str(idx) for idx in df[blanked].index.tolist())
+        time.sleep(0.3)
+        st.toast(
+            "The following row(s) had invalid mobile numbers and have been blanked: " +
+            ", ".join(str(idx) for idx in df[blanked].index.tolist()), icon=":material/build_circle:"
         )
 
     # Extract valid email from any cell with extra text (remove text after first space)
@@ -92,15 +95,17 @@ else:
     still_blank_mask = df["Email address"].isna()
     if still_blank_mask.any():
         blanked_emails = df.loc[still_blank_mask].index.tolist()
-        st.warning(
-            f":material/bolt: The following row(s) had no valid email address and have been left blank: {blanked_emails}"
+        time.sleep(0.3)
+        st.toast(
+            f"The following row(s) had no valid email address and have been left blank: {blanked_emails}", icon=":material/build_circle:"
         )
 
     # Check that NHS number is 10 digits long, drop rows that do not match
     nhs_valid = df["NHS number"].astype(str).str.match(r"^\d{10}$")
     dropped_count = (~nhs_valid).sum()
     if dropped_count > 0:
-        st.warning(f":material/bolt: {dropped_count} row(s) dropped due to invalid NHS number (must be exactly 10 digits).")
+        time.sleep(0.3)
+        st.toast(f"**{dropped_count}** row(s) dropped due to invalid NHS number (must be exactly 10 digits).", icon=":material/build_circle:")
     df = df[nhs_valid].reset_index(drop=True)
 
     # Drop rows where both mobile number and email are missing (treat NaN and empty as missing)
@@ -109,7 +114,8 @@ else:
     both_missing = mobile_missing & email_missing
     both_missing_count = both_missing.sum()
     if both_missing_count > 0:
-        st.warning(f":material/bolt: {both_missing_count} row(s) dropped because both mobile number and email address were missing.")
+        time.sleep(0.3)
+        st.toast(f"**{both_missing_count}** row(s) dropped because both mobile number and email address were missing.", icon=":material/build_circle:")
     df = df[~both_missing].reset_index(drop=True)
 
     # Keep only the required columns in the cleaned DataFrame
@@ -121,17 +127,27 @@ else:
         "Email address"
     ]
     cleaned_df = df[output_cols].copy()
-
-    st.subheader("✅ Cleaned Data")
-    st.dataframe(cleaned_df)
+    st.divider()
+    time.sleep(0.3)
+    st.toast("### Scroll down!!", icon=":material/south:")
+    st.subheader(":material/household_supplies: Cleaned Data")
+    st.dataframe(cleaned_df, height=200)
     st.info(f"Cleaned DataFrame row count: **{cleaned_df.shape[0]}**")
 
+    st.subheader(":material/download: Download Cleaned CSV")
+
+    # Text input for custom filename
+    filename = st.text_input(
+        "Enter a name for the downloaded CSV file (optional, without .csv extension):",
+        value="acurex_sms_cleaned"
+    )
     # Download button for cleaned CSV
     csv_buffer = io.StringIO()
     cleaned_df.to_csv(csv_buffer, index=False)
+    download_name = filename.strip() + ".csv" if filename.strip() else "acurex_sms_cleaned.csv"
     st.download_button(
-        label=":material/save: Download Cleaned CSV",
+        label="Download Cleaned CSV",
         data=csv_buffer.getvalue(),
-        file_name="acurex_sms_cleaned.csv",
+        file_name=download_name,
         mime="text/csv"
     )
